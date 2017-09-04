@@ -19,7 +19,7 @@ var css = csjs`
     align-items: baseline;
   }
   .txTable, .tr, .td {
-    border: 1px solid ${styles.colors.orange};
+    border: 1px solid ${styles.colors.lightOrange};
     border-collapse: collapse;
     font-size: 10px;
     color: ${styles.colors.grey};
@@ -87,21 +87,18 @@ function log (self, tx, api) {
 }
 
 function renderKnownTransaction (self, data) {
-  var from = helper.shortenAddress(data.tx.from)
+  var from = data.tx.from
   var to = ''
 
   if (data.tx.blockHash) {
-    to = helper.shortenAddress(data.tx.to)
+    to = data.tx.to
   } else if (data.tx.hash) {  // call (constructor of function call)
     var name = data.resolvedData.contractName + '.' + data.resolvedData.fn
-    var logs = ',' + ' 0 logs'
+    var logs = ',' + data.logs.length + ' logs'
     if (data.resolvedData.fn === '(constructor)') {
       to = name + logs
-      from = from + ' ' + name + logs
     } else {
-      var toHash = helper.shortenAddress(data.resolvedData.to)
-      to = name + ' ' + toHash + logs
-      from = from + ' ' + name + logs
+      to = data.resolvedData.to
     }
   }
 
@@ -111,7 +108,7 @@ function renderKnownTransaction (self, data) {
   var tx = yo`
     <span class=${css.container} id="tx${data.tx.hash}">
       <div class="${css.log}">
-        ${context(self, data.tx)}, ${data.resolvedData.contractName}.${data.resolvedData.fn}, ${data.logs.length} logs
+        ${context(self, data)}
         <div class=${css.buttons}>
         <button class=${css.details} onclick=${txDetails}>Details</button>
         <button class=${css.debug} onclick=${debug}>Debug</button>
@@ -136,16 +133,15 @@ function renderKnownTransaction (self, data) {
 }
 
 function renderUnknownTransaction (self, data) {
-  var from = helper.shortenAddress(data.tx.from)
+  var from = data.tx.from
   var to = data.tx.to
-  if (to) to = helper.shortenAddress(data.tx.to)
   function debug () {
     self.event.trigger('debugRequested', [data.tx.hash])
   }
   var tx = yo`
     <span class=${css.container} id="tx${data.tx.hash}">
       <div class="${css.log}">
-        ${context(self, data.tx)}
+        ${context(self, data)}
         <div class=${css.buttons}>
           <button class=${css.details} onclick=${txDetails}>Details</button>
           <button class=${css.debug} onclick=${debug}>Debug</button>
@@ -167,11 +163,17 @@ function renderUnknownTransaction (self, data) {
   return tx
 }
 
-function context (self, tx) {
+function context (self, data) {
+  var from = helper.shortenHexData(data.tx.from)
   if (executionContext.getProvider() === 'vm') {
-    return yo`<span>(vm)</span>`
+    var to = `${data.resolvedData.contractName}.${data.resolvedData.fn}, ${data.logs.length} logs`
+    return yo`<span>(vm), from: ${from}, to:${to}, value:${data.tx.value} wei</span>`
   } else {
-    return yo`<span>block:${tx.blockNumber}, txIndex:${tx.transactionIndex}`
+    var hash = helper.shortenHexData(data.tx.blockHash)
+    var block = data.tx.blockNumber
+    var i = data.tx.transactionIndex
+    var val = data.tx.value
+    return yo`<span>(block:${block} txIndex:${i}), from:${from}, to:${hash}, value:${value(val)} wei</span>`
   }
 }
 
