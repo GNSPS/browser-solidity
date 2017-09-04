@@ -123,7 +123,7 @@ function renderKnownTransaction (self, data) {
       tx.removeChild(table)
     } else {
       table = createTable({
-        from, to, val: data.tx.value, input: data.tx.input, hash: data.tx.hash
+        from, to, val: data.tx.value, input: data.tx.input, hash: data.tx.hash, gas: data.tx.gas
       })
       tx.appendChild(table)
     }
@@ -155,7 +155,7 @@ function renderUnknownTransaction (self, data) {
       tx.removeChild(table)
     } else {
       table = createTable({
-        from, to, val: data.tx.value, input: data.tx.input, hash: data.tx.hash
+        from, to, val: data.tx.value, input: data.tx.input, hash: data.tx.hash, gas: data.tx.gas
       })
       tx.appendChild(table)
     }
@@ -165,10 +165,19 @@ function renderUnknownTransaction (self, data) {
 
 function context (self, data) {
   var from = helper.shortenHexData(data.tx.from)
+  var to = ''
   if (executionContext.getProvider() === 'vm') {
-    var to = `${data.resolvedData.contractName}.${data.resolvedData.fn}, ${data.logs.length} logs`
+    console.log('VM')
+    console.log(data)
+    if (data.resolvedData.to) {
+      to = `${data.resolvedData.contractName}.${data.resolvedData.fn}, ${data.resolvedData.to}, ${data.logs.length} logs`
+    } else {
+      to = `${data.resolvedData.contractName}.${data.resolvedData.fn}, ${data.logs.length} logs`
+    }
     return yo`<span>(vm), from: ${from}, to:${to}, value:${data.tx.value} wei</span>`
   } else {
+    console.log('NOT VM')
+    console.log(data)
     var hash = helper.shortenHexData(data.tx.blockHash)
     var block = data.tx.blockNumber
     var i = data.tx.transactionIndex
@@ -200,6 +209,7 @@ function createTable (opts) {
   var val = opts.val
   var input = opts.input
   var hash = opts.hash
+  var gas = opts.gas
   return yo`
   <table class="${css.txTable}" id="txTable">
     <tr class="${css.tr}">
@@ -216,11 +226,15 @@ function createTable (opts) {
     </tr class="${css.tr}">
     <tr class="${css.tr}">
       <td class="${css.td}">data:</td>
-      <td class="${css.td}">${helper.shortenHexData(input)}</td>
+      <td class="${css.td}">${input}</td>
     </tr class="${css.tr}">
     <tr class="${css.tr}">
       <td class="${css.td}">hash:</td>
-      <td class="${css.td}">${helper.shortenHexData((hash))}</td>
+      <td class="${css.td}">${hash}</td>
+    </tr class="${css.tr}">
+    <tr class="${css.tr}">
+      <td class="${css.td}">gas:</td>
+      <td class="${css.td}">${gas}</td>
     </tr class="${css.tr}">
   </table>
   `
